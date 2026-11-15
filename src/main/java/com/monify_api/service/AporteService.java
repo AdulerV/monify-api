@@ -16,20 +16,24 @@ public class AporteService {
 
     private AporteRepository repository;
     private MetaFinanceiraService metaFinanceiraService;
+    private UsuarioLogadoService usuarioLogadoService;
 
-    public AporteService(AporteRepository repository, MetaFinanceiraService metaFinanceiraService) {
+    public AporteService(AporteRepository repository, MetaFinanceiraService metaFinanceiraService,
+                         UsuarioLogadoService usuarioLogadoService) {
         this.repository = repository;
         this.metaFinanceiraService = metaFinanceiraService;
+        this.usuarioLogadoService = usuarioLogadoService;
     }
 
     public List<Aporte> getAportes() {
-        return repository.findAll();
+        return repository.findByMetaFinanceiraUsuario(usuarioLogadoService.getUsuarioLogado());
     }
 
     public Optional<Aporte> getAporteById(Long id) {
-        return repository.findById(id);
+        return repository.findByIdAndMetaFinanceiraUsuario(id, usuarioLogadoService.getUsuarioLogado());
     }
 
+    // a meta informada ja foi buscada restrita ao usuario logado (AporteController.converter)
     @Transactional
     public Aporte salvar(Aporte aporte) {
         validar(aporte);

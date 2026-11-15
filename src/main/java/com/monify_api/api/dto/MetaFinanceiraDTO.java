@@ -1,6 +1,7 @@
 package com.monify_api.api.dto;
 
 import com.monify_api.model.entity.MetaFinanceira;
+import com.monify_api.model.entity.SituacaoMeta;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,6 +21,8 @@ public class MetaFinanceiraDTO {
     private LocalDate dataAlvo;
     private Float investimentoInicial;
     private Boolean status;
+    // calculada (somente leitura): ver MetaFinanceiraService.calcularSituacao
+    private SituacaoMeta situacao;
 
     public static MetaFinanceiraDTO create(MetaFinanceira meta) {
         ModelMapper modelMapper = new ModelMapper();

@@ -24,6 +24,10 @@ public class MetaFinanceira {
     private Float investimentoInicial;
     private Boolean status;
 
+    @JsonIgnore
+    @ManyToOne
+    private Usuario usuario;
+
     // Composicao (MetaFinanceira 1 <>-- 0..* Aporte): ciclo de vida controlado pelo MetaFinanceiraService
     @JsonIgnore
     @ToString.Exclude

@@ -20,20 +20,27 @@ import java.util.Optional;
 @Service
 public class DespesaService {
 
+    public static final int TAMANHO_MAXIMO_NOME = 255;
+    public static final int QUANTIDADE_MINIMA_PARCELAS = 2;
+    public static final int QUANTIDADE_MAXIMA_PARCELAS = 120;
+
     private DespesaRepository repository;
     private ParcelaRepository parcelaRepository;
+    private UsuarioLogadoService usuarioLogadoService;
 
-    public DespesaService(DespesaRepository repository, ParcelaRepository parcelaRepository) {
+    public DespesaService(DespesaRepository repository, ParcelaRepository parcelaRepository,
+                          UsuarioLogadoService usuarioLogadoService) {
         this.repository = repository;
         this.parcelaRepository = parcelaRepository;
+        this.usuarioLogadoService = usuarioLogadoService;
     }
 
     public List<Despesa> getDespesas() {
-        return repository.findAll();
+        return repository.findByUsuario(usuarioLogadoService.getUsuarioLogado());
     }
 
     public Optional<Despesa> getDespesaById(Long id) {
-        return repository.findById(id);
+        return repository.findByIdAndUsuario(id, usuarioLogadoService.getUsuarioLogado());
     }
 
     public List<Despesa> getDespesasByCategoria(CategoriaDespesa categoria) {
@@ -50,6 +57,7 @@ public class DespesaService {
         if (!Boolean.TRUE.equals(despesa.getParcelada())) {
             despesa.setParcelada(false);
         }
+        despesa.setUsuario(usuarioLogadoService.getUsuarioLogado());
         Despesa salva = repository.save(despesa);
         sincronizarParcelas(salva);
         return salva;
@@ -63,9 +71,21 @@ public class DespesaService {
         repository.delete(despesa);
     }
 
+    /*
+     * Regras de negocio da Despesa (metodo de maior complexidade ciclomatica do sistema):
+     *  - nome obrigatorio, com no maximo 255 caracteres;
+     *  - data obrigatoria e valor maior que zero;
+     *  - forma de pagamento e categoria obrigatorias;
+     *  - despesa parcelada: quantidade de parcelas entre 2 e 120;
+     *  - categoria com limite de gasto: a soma das despesas da categoria no mes da despesa
+     *    (desconsiderando a propria despesa, quando for alteracao) nao pode ultrapassar o valorLimite.
+     */
     public void validar(Despesa despesa) {
-        if (despesa.getNome() == null || despesa.getNome().trim().equals("")) {
+        if (despesa.getNome() == null || despesa.getNome().trim().isEmpty()) {
             throw new RegraNegocioException("Nome inválido");
+        }
+        if (despesa.getNome().length() > TAMANHO_MAXIMO_NOME) {
+            throw new RegraNegocioException("Nome deve ter no máximo " + TAMANHO_MAXIMO_NOME + " caracteres");
         }
         if (despesa.getData() == null) {
             throw new RegraNegocioException("Data inválida");
@@ -82,30 +102,25 @@ public class DespesaService {
             throw new RegraNegocioException("Categoria de despesa inválida");
         }
         if (Boolean.TRUE.equals(despesa.getParcelada())) {
-            Integer qtd = despesa.getQuantidadeParcelas();
-            if (qtd == null || qtd < 2) {
-                throw new RegraNegocioException("Quantidade de parcelas inválida (informe um número maior ou igual a 2)");
+            Integer quantidade = despesa.getQuantidadeParcelas();
+            if (quantidade == null || quantidade < QUANTIDADE_MINIMA_PARCELAS
+                    || quantidade > QUANTIDADE_MAXIMA_PARCELAS) {
+                throw new RegraNegocioException("Quantidade de parcelas inválida (informe um número entre "
+                        + QUANTIDADE_MINIMA_PARCELAS + " e " + QUANTIDADE_MAXIMA_PARCELAS + ")");
             }
         }
-        validarLimiteGasto(despesa);
-    }
-
-    // Regra da CategoriaDespesa: se limiteGasto = true, a soma das despesas da categoria
-    // no mes da despesa nao pode ultrapassar o valorLimite.
-    private void validarLimiteGasto(Despesa despesa) {
         CategoriaDespesa categoria = despesa.getCategoriaDespesa();
-        if (!Boolean.TRUE.equals(categoria.getLimiteGasto()) || categoria.getValorLimite() == null) {
-            return;
-        }
-        YearMonth mes = YearMonth.from(despesa.getData());
-        Long idIgnorado = despesa.getId() == null ? -1L : despesa.getId();
-        Double totalMes = repository.somarValorPorCategoriaNoPeriodo(
-                categoria, mes.atDay(1), mes.atEndOfMonth(), idIgnorado);
-        double total = totalMes + despesa.getValor();
-        if (total > categoria.getValorLimite()) {
-            throw new RegraNegocioException(String.format(
-                    "Limite de gasto mensal da categoria %s excedido (limite: %.2f, total no mês: %.2f)",
-                    categoria.getNome(), categoria.getValorLimite(), total));
+        if (Boolean.TRUE.equals(categoria.getLimiteGasto()) && categoria.getValorLimite() != null) {
+            YearMonth mes = YearMonth.from(despesa.getData());
+            Long idIgnorado = despesa.getId() == null ? -1L : despesa.getId();
+            Double totalMes = repository.somarValorPorCategoriaNoPeriodo(
+                    categoria, mes.atDay(1), mes.atEndOfMonth(), idIgnorado);
+            double total = totalMes + despesa.getValor();
+            if (total > categoria.getValorLimite()) {
+                throw new RegraNegocioException(String.format(
+                        "Limite de gasto mensal da categoria %s excedido (limite: %.2f, total no mês: %.2f)",
+                        categoria.getNome(), categoria.getValorLimite(), total));
+            }
         }
     }
 

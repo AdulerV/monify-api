@@ -16,23 +16,27 @@ public class CategoriaReceitaService {
 
     private CategoriaReceitaRepository repository;
     private ReceitaRepository receitaRepository;
+    private UsuarioLogadoService usuarioLogadoService;
 
-    public CategoriaReceitaService(CategoriaReceitaRepository repository, ReceitaRepository receitaRepository) {
+    public CategoriaReceitaService(CategoriaReceitaRepository repository, ReceitaRepository receitaRepository,
+                                   UsuarioLogadoService usuarioLogadoService) {
         this.repository = repository;
         this.receitaRepository = receitaRepository;
+        this.usuarioLogadoService = usuarioLogadoService;
     }
 
     public List<CategoriaReceita> getCategoriasReceita() {
-        return repository.findAll();
+        return repository.findByUsuario(usuarioLogadoService.getUsuarioLogado());
     }
 
     public Optional<CategoriaReceita> getCategoriaReceitaById(Long id) {
-        return repository.findById(id);
+        return repository.findByIdAndUsuario(id, usuarioLogadoService.getUsuarioLogado());
     }
 
     @Transactional
     public CategoriaReceita salvar(CategoriaReceita categoria) {
         validar(categoria);
+        categoria.setUsuario(usuarioLogadoService.getUsuarioLogado());
         return repository.save(categoria);
     }
 

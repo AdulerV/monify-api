@@ -1,5 +1,6 @@
 package com.monify_api.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,4 +17,8 @@ public abstract class CategoriaLancamento {
     private Long id;
 
     private String nome;
+
+    @JsonIgnore
+    @ManyToOne
+    private Usuario usuario;
 }

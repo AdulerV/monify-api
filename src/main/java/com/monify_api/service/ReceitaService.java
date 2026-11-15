@@ -15,17 +15,19 @@ import java.util.Optional;
 public class ReceitaService {
 
     private ReceitaRepository repository;
+    private UsuarioLogadoService usuarioLogadoService;
 
-    public ReceitaService(ReceitaRepository repository) {
+    public ReceitaService(ReceitaRepository repository, UsuarioLogadoService usuarioLogadoService) {
         this.repository = repository;
+        this.usuarioLogadoService = usuarioLogadoService;
     }
 
     public List<Receita> getReceitas() {
-        return repository.findAll();
+        return repository.findByUsuario(usuarioLogadoService.getUsuarioLogado());
     }
 
     public Optional<Receita> getReceitaById(Long id) {
-        return repository.findById(id);
+        return repository.findByIdAndUsuario(id, usuarioLogadoService.getUsuarioLogado());
     }
 
     public List<Receita> getReceitasByCategoria(CategoriaReceita categoria) {
@@ -35,6 +37,7 @@ public class ReceitaService {
     @Transactional
     public Receita salvar(Receita receita) {
         validar(receita);
+        receita.setUsuario(usuarioLogadoService.getUsuarioLogado());
         return repository.save(receita);
     }
 

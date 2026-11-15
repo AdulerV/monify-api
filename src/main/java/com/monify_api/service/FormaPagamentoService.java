@@ -16,23 +16,27 @@ public class FormaPagamentoService {
 
     private FormaPagamentoRepository repository;
     private DespesaRepository despesaRepository;
+    private UsuarioLogadoService usuarioLogadoService;
 
-    public FormaPagamentoService(FormaPagamentoRepository repository, DespesaRepository despesaRepository) {
+    public FormaPagamentoService(FormaPagamentoRepository repository, DespesaRepository despesaRepository,
+                                 UsuarioLogadoService usuarioLogadoService) {
         this.repository = repository;
         this.despesaRepository = despesaRepository;
+        this.usuarioLogadoService = usuarioLogadoService;
     }
 
     public List<FormaPagamento> getFormasPagamento() {
-        return repository.findAll();
+        return repository.findByUsuario(usuarioLogadoService.getUsuarioLogado());
     }
 
     public Optional<FormaPagamento> getFormaPagamentoById(Long id) {
-        return repository.findById(id);
+        return repository.findByIdAndUsuario(id, usuarioLogadoService.getUsuarioLogado());
     }
 
     @Transactional
     public FormaPagamento salvar(FormaPagamento formaPagamento) {
         validar(formaPagamento);
+        formaPagamento.setUsuario(usuarioLogadoService.getUsuarioLogado());
         return repository.save(formaPagamento);
     }
 

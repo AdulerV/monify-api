@@ -14,19 +14,22 @@ import java.util.Optional;
 public class ParcelaService {
 
     private ParcelaRepository repository;
+    private UsuarioLogadoService usuarioLogadoService;
 
-    public ParcelaService(ParcelaRepository repository) {
+    public ParcelaService(ParcelaRepository repository, UsuarioLogadoService usuarioLogadoService) {
         this.repository = repository;
+        this.usuarioLogadoService = usuarioLogadoService;
     }
 
     public List<Parcela> getParcelas() {
-        return repository.findAll();
+        return repository.findByDespesaUsuarioOrderByIdAsc(usuarioLogadoService.getUsuarioLogado());
     }
 
     public Optional<Parcela> getParcelaById(Long id) {
-        return repository.findById(id);
+        return repository.findByIdAndDespesaUsuario(id, usuarioLogadoService.getUsuarioLogado());
     }
 
+    // a despesa informada ja foi buscada restrita ao usuario logado (ParcelaController.converter)
     @Transactional
     public Parcela salvar(Parcela parcela) {
         validar(parcela);

@@ -27,7 +27,7 @@ public class MetaFinanceiraController {
     @GetMapping()
     public ResponseEntity get() {
         List<MetaFinanceira> metas = service.getMetasFinanceiras();
-        return ResponseEntity.ok(metas.stream().map(MetaFinanceiraDTO::create).collect(Collectors.toList()));
+        return ResponseEntity.ok(metas.stream().map(this::paraDTO).collect(Collectors.toList()));
     }
 
     @GetMapping("/{id}")
@@ -36,7 +36,7 @@ public class MetaFinanceiraController {
         if (!meta.isPresent()) {
             return new ResponseEntity("Meta financeira não encontrada", HttpStatus.NOT_FOUND);
         }
-        return ResponseEntity.ok(meta.map(MetaFinanceiraDTO::create));
+        return ResponseEntity.ok(meta.map(this::paraDTO));
     }
 
     @GetMapping("/{id}/aportes")
@@ -54,7 +54,7 @@ public class MetaFinanceiraController {
         try {
             MetaFinanceira meta = converter(dto);
             meta = service.salvar(meta);
-            return new ResponseEntity(MetaFinanceiraDTO.create(meta), HttpStatus.CREATED);
+            return new ResponseEntity(paraDTO(meta), HttpStatus.CREATED);
         } catch (RegraNegocioException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -69,7 +69,7 @@ public class MetaFinanceiraController {
             MetaFinanceira meta = converter(dto);
             meta.setId(id);
             meta = service.salvar(meta);
-            return ResponseEntity.ok(MetaFinanceiraDTO.create(meta));
+            return ResponseEntity.ok(paraDTO(meta));
         } catch (RegraNegocioException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -92,5 +92,11 @@ public class MetaFinanceiraController {
     public MetaFinanceira converter(MetaFinanceiraDTO dto) {
         ModelMapper modelMapper = new ModelMapper();
         return modelMapper.map(dto, MetaFinanceira.class);
+    }
+
+    private MetaFinanceiraDTO paraDTO(MetaFinanceira meta) {
+        MetaFinanceiraDTO dto = MetaFinanceiraDTO.create(meta);
+        dto.setSituacao(service.getSituacao(meta));
+        return dto;
     }
 }

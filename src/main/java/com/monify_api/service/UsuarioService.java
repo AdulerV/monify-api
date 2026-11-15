@@ -3,6 +3,12 @@ package com.monify_api.service;
 import com.monify_api.exception.RegraNegocioException;
 import com.monify_api.exception.SenhaInvalidaException;
 import com.monify_api.model.entity.Usuario;
+import com.monify_api.model.repository.CategoriaDespesaRepository;
+import com.monify_api.model.repository.CategoriaReceitaRepository;
+import com.monify_api.model.repository.DespesaRepository;
+import com.monify_api.model.repository.FormaPagamentoRepository;
+import com.monify_api.model.repository.MetaFinanceiraRepository;
+import com.monify_api.model.repository.ReceitaRepository;
 import com.monify_api.model.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.User;
@@ -25,6 +31,24 @@ public class UsuarioService implements UserDetailsService {
 
     @Autowired
     private UsuarioRepository repository;
+
+    @Autowired
+    private ReceitaRepository receitaRepository;
+
+    @Autowired
+    private DespesaRepository despesaRepository;
+
+    @Autowired
+    private CategoriaReceitaRepository categoriaReceitaRepository;
+
+    @Autowired
+    private CategoriaDespesaRepository categoriaDespesaRepository;
+
+    @Autowired
+    private FormaPagamentoRepository formaPagamentoRepository;
+
+    @Autowired
+    private MetaFinanceiraRepository metaFinanceiraRepository;
 
     public List<Usuario> getUsuarios() {
         return repository.findAll();
@@ -71,6 +95,13 @@ public class UsuarioService implements UserDetailsService {
     @Transactional
     public void excluir(Usuario usuario) {
         Objects.requireNonNull(usuario.getId());
+        if (receitaRepository.existsByUsuario(usuario) || despesaRepository.existsByUsuario(usuario)
+                || categoriaReceitaRepository.existsByUsuario(usuario)
+                || categoriaDespesaRepository.existsByUsuario(usuario)
+                || formaPagamentoRepository.existsByUsuario(usuario)
+                || metaFinanceiraRepository.existsByUsuario(usuario)) {
+            throw new RegraNegocioException("Usuário possui dados financeiros cadastrados");
+        }
         repository.delete(usuario);
     }
 

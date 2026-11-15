@@ -56,6 +56,51 @@ class MonifyApiFluxoTests {
     }
 
     @Test
+    void cadaUsuarioAcessaApenasOsPropriosDados() throws Exception {
+        Integer idCat = criar("/api/v1/categoriasreceita", "{\"nome\":\"Salário\"}");
+        Integer idRec = criar("/api/v1/receitas",
+                "{\"nome\":\"Salário nov\",\"data\":\"2026-11-05\",\"valor\":5000,\"idCategoriaReceita\":" + idCat + "}");
+        Integer idMeta = criar("/api/v1/metasfinanceiras",
+                "{\"nome\":\"Viagem\",\"valor\":1000,\"dataEnvio\":\"2026-11-01\",\"dataAlvo\":\"2027-06-30\"}");
+
+        // segundo usuario
+        mvc.perform(post("/api/v1/usuarios").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"login\":\"bruno\",\"cpf\":\"456\",\"senha\":\"s3nha\",\"senhaRepeticao\":\"s3nha\",\"admin\":false}"))
+                .andExpect(status().isCreated());
+        String resp = mvc.perform(post("/api/v1/usuarios/auth").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"login\":\"bruno\",\"senha\":\"s3nha\"}"))
+                .andReturn().getResponse().getContentAsString();
+        String tokenBruno = "Bearer " + JsonPath.read(resp, "$.token");
+
+        // bruno nao enxerga, nao altera e nao exclui os dados de ana
+        mvc.perform(get("/api/v1/receitas").header("Authorization", tokenBruno))
+                .andExpect(jsonPath("$", hasSize(0)));
+        mvc.perform(get("/api/v1/categoriasreceita").header("Authorization", tokenBruno))
+                .andExpect(jsonPath("$", hasSize(0)));
+        mvc.perform(get("/api/v1/metasfinanceiras").header("Authorization", tokenBruno))
+                .andExpect(jsonPath("$", hasSize(0)));
+        mvc.perform(get("/api/v1/receitas/" + idRec).header("Authorization", tokenBruno))
+                .andExpect(status().isNotFound());
+        mvc.perform(delete("/api/v1/receitas/" + idRec).header("Authorization", tokenBruno))
+                .andExpect(status().isNotFound());
+        mvc.perform(put("/api/v1/metasfinanceiras/" + idMeta).header("Authorization", tokenBruno)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nome\":\"X\",\"valor\":1,\"dataEnvio\":\"2026-11-01\",\"dataAlvo\":\"2026-12-01\"}"))
+                .andExpect(status().isNotFound());
+        // nem consegue usar a categoria de ana em um lancamento proprio
+        mvc.perform(post("/api/v1/receitas").header("Authorization", tokenBruno)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nome\":\"Freela\",\"data\":\"2026-11-05\",\"valor\":10,\"idCategoriaReceita\":" + idCat + "}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Categoria de receita inválida"));
+
+        // ana continua vendo os proprios dados, com a situacao da meta calculada
+        mvc.perform(auth(get("/api/v1/receitas"))).andExpect(jsonPath("$", hasSize(1)));
+        mvc.perform(auth(get("/api/v1/metasfinanceiras/" + idMeta)))
+                .andExpect(jsonPath("$.situacao").exists());
+    }
+
+    @Test
     void semTokenNegaAcesso() throws Exception {
         mvc.perform(get("/api/v1/despesas")).andExpect(status().isForbidden());
         mvc.perform(post("/api/v1/usuarios/auth").contentType(MediaType.APPLICATION_JSON)

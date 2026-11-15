@@ -1,5 +1,6 @@
 package com.monify_api.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -21,4 +22,9 @@ public abstract class Lancamento {
     private LocalDate data;
     private Boolean volume;
     private Float valor;
+
+    // dono do lancamento: cada usuario enxerga apenas os proprios dados
+    @JsonIgnore
+    @ManyToOne
+    private Usuario usuario;
 }

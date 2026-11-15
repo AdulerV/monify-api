@@ -16,18 +16,21 @@ public class CategoriaDespesaService {
 
     private CategoriaDespesaRepository repository;
     private DespesaRepository despesaRepository;
+    private UsuarioLogadoService usuarioLogadoService;
 
-    public CategoriaDespesaService(CategoriaDespesaRepository repository, DespesaRepository despesaRepository) {
+    public CategoriaDespesaService(CategoriaDespesaRepository repository, DespesaRepository despesaRepository,
+                                   UsuarioLogadoService usuarioLogadoService) {
         this.repository = repository;
         this.despesaRepository = despesaRepository;
+        this.usuarioLogadoService = usuarioLogadoService;
     }
 
     public List<CategoriaDespesa> getCategoriasDespesa() {
-        return repository.findAll();
+        return repository.findByUsuario(usuarioLogadoService.getUsuarioLogado());
     }
 
     public Optional<CategoriaDespesa> getCategoriaDespesaById(Long id) {
-        return repository.findById(id);
+        return repository.findByIdAndUsuario(id, usuarioLogadoService.getUsuarioLogado());
     }
 
     @Transactional
@@ -36,6 +39,7 @@ public class CategoriaDespesaService {
         if (!Boolean.TRUE.equals(categoria.getLimiteGasto())) {
             categoria.setLimiteGasto(false);
         }
+        categoria.setUsuario(usuarioLogadoService.getUsuarioLogado());
         return repository.save(categoria);
     }
 
