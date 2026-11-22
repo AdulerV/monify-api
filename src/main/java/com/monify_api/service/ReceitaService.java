@@ -30,35 +30,35 @@ public class ReceitaService {
         return repository.findByIdAndUsuario(id, usuarioLogadoService.getUsuarioLogado());
     }
 
-    public List<Receita> getReceitasByCategoria(CategoriaReceita categoria) {
+    public List<Receita> getReceitasByCategoria(CategoriaReceita categoria) { // 1
         return repository.findByCategoriaReceita(categoria);
     }
 
     @Transactional
-    public Receita salvar(Receita receita) {
+    public Receita salvar(Receita receita) { // 1
         validar(receita);
         receita.setUsuario(usuarioLogadoService.getUsuarioLogado());
         return repository.save(receita);
     }
 
     @Transactional
-    public void excluir(Receita receita) {
+    public void excluir(Receita receita) { // 1
         Objects.requireNonNull(receita.getId());
         repository.delete(receita);
     }
 
-    public void validar(Receita receita) {
-        if (receita.getNome() == null || receita.getNome().trim().equals("")) {
+    public void validar(Receita receita) { // 9
+        if (receita.getNome() == null || receita.getNome().trim().equals("")) { // 1 e 2
             throw new RegraNegocioException("Nome inválido");
         }
-        if (receita.getData() == null) {
+        if (receita.getData() == null) { // 3
             throw new RegraNegocioException("Data inválida");
         }
-        if (receita.getValor() == null || receita.getValor() <= 0) {
+        if (receita.getValor() == null || receita.getValor() <= 0) { // 4 e 5
             throw new RegraNegocioException("Valor inválido");
         }
         if (receita.getCategoriaReceita() == null || receita.getCategoriaReceita().getId() == null
-                || receita.getCategoriaReceita().getId() == 0) {
+                || receita.getCategoriaReceita().getId() == 0) { // 6, 7 e 8
             throw new RegraNegocioException("Categoria de receita inválida");
         }
     }

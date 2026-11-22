@@ -40,22 +40,22 @@ public class MetaFinanceiraService {
         return repository.findByIdAndUsuario(id, usuarioLogadoService.getUsuarioLogado());
     }
 
-    public List<Aporte> getAportes(MetaFinanceira meta) {
+    public List<Aporte> getAportes(MetaFinanceira meta) { // 1
         return aporteRepository.findByMetaFinanceiraOrderByDataEnvioAsc(meta);
     }
 
-    public double getTotalAportado(MetaFinanceira meta) {
-        return meta.getId() == null ? 0 : aporteRepository.somarValorPorMeta(meta);
+    public double getTotalAportado(MetaFinanceira meta) { // 2
+        return meta.getId() == null ? 0 : aporteRepository.somarValorPorMeta(meta); // 1
     }
 
-    public SituacaoMeta getSituacao(MetaFinanceira meta) {
+    public SituacaoMeta getSituacao(MetaFinanceira meta) { // 1
         return calcularSituacao(meta, getTotalAportado(meta), LocalDate.now());
     }
 
     @Transactional
-    public MetaFinanceira salvar(MetaFinanceira meta) {
+    public MetaFinanceira salvar(MetaFinanceira meta) { // 2
         validar(meta);
-        if (meta.getInvestimentoInicial() == null) {
+        if (meta.getInvestimentoInicial() == null) { // 1
             meta.setInvestimentoInicial(0f);
         }
         meta.setUsuario(usuarioLogadoService.getUsuarioLogado());
@@ -65,21 +65,21 @@ public class MetaFinanceiraService {
 
     // status = true quando investimento inicial + aportes atingem o valor da meta
     @Transactional
-    public void atualizarStatus(MetaFinanceira meta) {
+    public void atualizarStatus(MetaFinanceira meta) { // 1
         meta.setStatus(calcularStatus(meta));
         repository.save(meta);
     }
 
     @Transactional
-    public void excluir(MetaFinanceira meta) {
+    public void excluir(MetaFinanceira meta) { // 1
         Objects.requireNonNull(meta.getId());
         // Composicao: os aportes nao existem sem a meta
         aporteRepository.deleteAll(aporteRepository.findByMetaFinanceiraOrderByDataEnvioAsc(meta));
         repository.delete(meta);
     }
 
-    private boolean calcularStatus(MetaFinanceira meta) {
-        double inicial = meta.getInvestimentoInicial() == null ? 0 : meta.getInvestimentoInicial();
+    private boolean calcularStatus(MetaFinanceira meta) { // 2
+        double inicial = meta.getInvestimentoInicial() == null ? 0 : meta.getInvestimentoInicial(); // 1
         return inicial + getTotalAportado(meta) >= meta.getValor();
     }
 
@@ -93,56 +93,56 @@ public class MetaFinanceiraService {
      *  - NO_PRAZO:     progresso real >= progresso esperado (dias decorridos / prazo total);
      *  - ATENCAO:      progresso real entre 80% e 100% do esperado.
      */
-    public SituacaoMeta calcularSituacao(MetaFinanceira meta, double totalAportes, LocalDate hoje) {
-        if (meta == null) {
-            throw new RegraNegocioException("Meta financeira não informada");
+    public SituacaoMeta calcularSituacao(MetaFinanceira meta, double totalAportes, LocalDate hoje) { // 13
+        if (meta == null) { // 1
+            throw new RegraNegocioException("Meta financeira não informada"); // 2
         }
-        if (meta.getValor() == null || meta.getValor() <= 0) {
-            throw new RegraNegocioException("Valor da meta inválido");
+        if (meta.getValor() == null || meta.getValor() <= 0) { // 3 e 4
+            throw new RegraNegocioException("Valor da meta inválido"); // 5
         }
-        if (meta.getDataEnvio() == null || meta.getDataAlvo() == null) {
-            throw new RegraNegocioException("Período da meta inválido");
+        if (meta.getDataEnvio() == null || meta.getDataAlvo() == null) { // 6 e 7
+            throw new RegraNegocioException("Período da meta inválido"); // 8
         }
-        double inicial = meta.getInvestimentoInicial() == null ? 0 : meta.getInvestimentoInicial();
+        double inicial = meta.getInvestimentoInicial() == null ? 0 : meta.getInvestimentoInicial(); // 9 e 10
         double acumulado = inicial + totalAportes;
-        if (acumulado >= meta.getValor()) {
-            return SituacaoMeta.CONCLUIDA;
+        if (acumulado >= meta.getValor()) { // 11
+            return SituacaoMeta.CONCLUIDA; // 12
         }
-        if (hoje.isBefore(meta.getDataEnvio())) {
-            return SituacaoMeta.NAO_INICIADA;
+        if (hoje.isBefore(meta.getDataEnvio())) { // 13
+            return SituacaoMeta.NAO_INICIADA; // 14
         }
-        if (hoje.isAfter(meta.getDataAlvo())) {
-            return SituacaoMeta.ATRASADA;
+        if (hoje.isAfter(meta.getDataAlvo())) { // 15
+            return SituacaoMeta.ATRASADA; // 16
         }
         long prazoTotal = ChronoUnit.DAYS.between(meta.getDataEnvio(), meta.getDataAlvo());
-        if (prazoTotal == 0) {
-            return SituacaoMeta.EM_RISCO;
+        if (prazoTotal == 0) { // 17
+            return SituacaoMeta.EM_RISCO; // 18
         }
         double progressoEsperado = ChronoUnit.DAYS.between(meta.getDataEnvio(), hoje) / (double) prazoTotal;
         double progressoReal = acumulado / meta.getValor();
-        if (progressoReal >= progressoEsperado) {
-            return SituacaoMeta.NO_PRAZO;
+        if (progressoReal >= progressoEsperado) { // 19
+            return SituacaoMeta.NO_PRAZO; // 20
         }
-        if (progressoReal >= progressoEsperado * FATOR_ATENCAO) {
-            return SituacaoMeta.ATENCAO;
+        if (progressoReal >= progressoEsperado * FATOR_ATENCAO) { // 21
+            return SituacaoMeta.ATENCAO; // 22
         }
-        return SituacaoMeta.EM_RISCO;
+        return SituacaoMeta.EM_RISCO; // 23
     }
 
-    public void validar(MetaFinanceira meta) {
-        if (meta.getNome() == null || meta.getNome().trim().equals("")) {
+    public void validar(MetaFinanceira meta) { // 10
+        if (meta.getNome() == null || meta.getNome().trim().equals("")) {  // 1 e 2
             throw new RegraNegocioException("Nome inválido");
         }
-        if (meta.getValor() == null || meta.getValor() <= 0) {
+        if (meta.getValor() == null || meta.getValor() <= 0) { // 3 e 4
             throw new RegraNegocioException("Valor inválido");
         }
-        if (meta.getDataEnvio() == null) {
+        if (meta.getDataEnvio() == null) { // 5
             throw new RegraNegocioException("Data de envio inválida");
         }
-        if (meta.getDataAlvo() == null || meta.getDataAlvo().isBefore(meta.getDataEnvio())) {
+        if (meta.getDataAlvo() == null || meta.getDataAlvo().isBefore(meta.getDataEnvio())) { // 6 e 7
             throw new RegraNegocioException("Data alvo inválida");
         }
-        if (meta.getInvestimentoInicial() != null && meta.getInvestimentoInicial() < 0) {
+        if (meta.getInvestimentoInicial() != null && meta.getInvestimentoInicial() < 0) { // 8 e 9
             throw new RegraNegocioException("Investimento inicial inválido");
         }
     }

@@ -41,16 +41,16 @@ public class FormaPagamentoService {
     }
 
     @Transactional
-    public void excluir(FormaPagamento formaPagamento) {
+    public void excluir(FormaPagamento formaPagamento) { // 2
         Objects.requireNonNull(formaPagamento.getId());
-        if (despesaRepository.existsByFormaPagamento(formaPagamento)) {
+        if (despesaRepository.existsByFormaPagamento(formaPagamento)) { // 1
             throw new RegraNegocioException("Forma de pagamento possui despesas vinculadas");
         }
         repository.delete(formaPagamento);
     }
 
-    public void validar(FormaPagamento formaPagamento) {
-        if (formaPagamento.getNome() == null || formaPagamento.getNome().trim().equals("")) {
+    public void validar(FormaPagamento formaPagamento) { // 3
+        if (formaPagamento.getNome() == null || formaPagamento.getNome().trim().equals("")) { // 1 e 2
             throw new RegraNegocioException("Nome inválido");
         }
     }

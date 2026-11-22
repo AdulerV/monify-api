@@ -35,16 +35,16 @@ public class AporteService {
 
     // a meta informada ja foi buscada restrita ao usuario logado (AporteController.converter)
     @Transactional
-    public Aporte salvar(Aporte aporte) {
+    public Aporte salvar(Aporte aporte) { // 5
         validar(aporte);
         // Se o aporte mudou de meta, a meta anterior tambem precisa ter o status recalculado
         MetaFinanceira metaAnterior = aporte.getId() == null ? null
-                : repository.findById(aporte.getId()).map(Aporte::getMetaFinanceira).orElse(null);
-        Long idMetaAnterior = metaAnterior == null ? null : metaAnterior.getId();
+                : repository.findById(aporte.getId()).map(Aporte::getMetaFinanceira).orElse(null); // 1
+        Long idMetaAnterior = metaAnterior == null ? null : metaAnterior.getId(); // 2
 
         Aporte salvo = repository.save(aporte);
         metaFinanceiraService.atualizarStatus(salvo.getMetaFinanceira());
-        if (idMetaAnterior != null && !idMetaAnterior.equals(salvo.getMetaFinanceira().getId())) {
+        if (idMetaAnterior != null && !idMetaAnterior.equals(salvo.getMetaFinanceira().getId())) { // 3 e 4
             metaFinanceiraService.getMetaFinanceiraById(idMetaAnterior)
                     .ifPresent(metaFinanceiraService::atualizarStatus);
         }
@@ -52,7 +52,7 @@ public class AporteService {
     }
 
     @Transactional
-    public void excluir(Aporte aporte) {
+    public void excluir(Aporte aporte) { // 1
         Objects.requireNonNull(aporte.getId());
         MetaFinanceira meta = aporte.getMetaFinanceira();
         repository.delete(aporte);
@@ -60,15 +60,15 @@ public class AporteService {
         metaFinanceiraService.atualizarStatus(meta);
     }
 
-    public void validar(Aporte aporte) {
+    public void validar(Aporte aporte) { // 7
         if (aporte.getMetaFinanceira() == null || aporte.getMetaFinanceira().getId() == null
-                || aporte.getMetaFinanceira().getId() == 0) {
+                || aporte.getMetaFinanceira().getId() == 0) { // 1, 2 e 3
             throw new RegraNegocioException("Meta financeira inválida");
         }
-        if (aporte.getValor() == null || aporte.getValor() <= 0) {
+        if (aporte.getValor() == null || aporte.getValor() <= 0) { // 4 e 5
             throw new RegraNegocioException("Valor inválido");
         }
-        if (aporte.getDataEnvio() == null) {
+        if (aporte.getDataEnvio() == null) { // 6
             throw new RegraNegocioException("Data de envio inválida");
         }
     }

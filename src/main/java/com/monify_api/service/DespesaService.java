@@ -43,18 +43,18 @@ public class DespesaService {
         return repository.findByIdAndUsuario(id, usuarioLogadoService.getUsuarioLogado());
     }
 
-    public List<Despesa> getDespesasByCategoria(CategoriaDespesa categoria) {
+    public List<Despesa> getDespesasByCategoria(CategoriaDespesa categoria) { // 1
         return repository.findByCategoriaDespesa(categoria);
     }
 
-    public List<Parcela> getParcelas(Despesa despesa) {
+    public List<Parcela> getParcelas(Despesa despesa) { // 1
         return parcelaRepository.findByDespesaOrderByIdAsc(despesa);
     }
 
     @Transactional
-    public Despesa salvar(Despesa despesa) {
+    public Despesa salvar(Despesa despesa) { // 2
         validar(despesa);
-        if (!Boolean.TRUE.equals(despesa.getParcelada())) {
+        if (!Boolean.TRUE.equals(despesa.getParcelada())) { // 1
             despesa.setParcelada(false);
         }
         despesa.setUsuario(usuarioLogadoService.getUsuarioLogado());
@@ -64,7 +64,7 @@ public class DespesaService {
     }
 
     @Transactional
-    public void excluir(Despesa despesa) {
+    public void excluir(Despesa despesa) { // 1
         Objects.requireNonNull(despesa.getId());
         // Composicao: as parcelas nao existem sem a despesa
         parcelaRepository.deleteAll(parcelaRepository.findByDespesaOrderByIdAsc(despesa));
@@ -80,43 +80,43 @@ public class DespesaService {
      *  - categoria com limite de gasto: a soma das despesas da categoria no mes da despesa
      *    (desconsiderando a propria despesa, quando for alteracao) nao pode ultrapassar o valorLimite.
      */
-    public void validar(Despesa despesa) {
-        if (despesa.getNome() == null || despesa.getNome().trim().isEmpty()) {
+    public void validar(Despesa despesa) { // 21
+        if (despesa.getNome() == null || despesa.getNome().trim().isEmpty()) { // 1 e 2
             throw new RegraNegocioException("Nome inválido");
         }
-        if (despesa.getNome().length() > TAMANHO_MAXIMO_NOME) {
+        if (despesa.getNome().length() > TAMANHO_MAXIMO_NOME) { // 3
             throw new RegraNegocioException("Nome deve ter no máximo " + TAMANHO_MAXIMO_NOME + " caracteres");
         }
-        if (despesa.getData() == null) {
+        if (despesa.getData() == null) { // 4
             throw new RegraNegocioException("Data inválida");
         }
-        if (despesa.getValor() == null || despesa.getValor() <= 0) {
+        if (despesa.getValor() == null || despesa.getValor() <= 0) { // 5 e 6
             throw new RegraNegocioException("Valor inválido");
         }
         if (despesa.getFormaPagamento() == null || despesa.getFormaPagamento().getId() == null
-                || despesa.getFormaPagamento().getId() == 0) {
+                || despesa.getFormaPagamento().getId() == 0) { // 7, 8 e 9
             throw new RegraNegocioException("Forma de pagamento inválida");
         }
         if (despesa.getCategoriaDespesa() == null || despesa.getCategoriaDespesa().getId() == null
-                || despesa.getCategoriaDespesa().getId() == 0) {
+                || despesa.getCategoriaDespesa().getId() == 0) { // 10, 11 e 12
             throw new RegraNegocioException("Categoria de despesa inválida");
         }
-        if (Boolean.TRUE.equals(despesa.getParcelada())) {
+        if (Boolean.TRUE.equals(despesa.getParcelada())) { // 13
             Integer quantidade = despesa.getQuantidadeParcelas();
             if (quantidade == null || quantidade < QUANTIDADE_MINIMA_PARCELAS
-                    || quantidade > QUANTIDADE_MAXIMA_PARCELAS) {
+                    || quantidade > QUANTIDADE_MAXIMA_PARCELAS) { // 14, 15 e 16
                 throw new RegraNegocioException("Quantidade de parcelas inválida (informe um número entre "
                         + QUANTIDADE_MINIMA_PARCELAS + " e " + QUANTIDADE_MAXIMA_PARCELAS + ")");
             }
         }
         CategoriaDespesa categoria = despesa.getCategoriaDespesa();
-        if (Boolean.TRUE.equals(categoria.getLimiteGasto()) && categoria.getValorLimite() != null) {
+        if (Boolean.TRUE.equals(categoria.getLimiteGasto()) && categoria.getValorLimite() != null) { // 17 e 18
             YearMonth mes = YearMonth.from(despesa.getData());
-            Long idIgnorado = despesa.getId() == null ? -1L : despesa.getId();
+            Long idIgnorado = despesa.getId() == null ? -1L : despesa.getId(); // 19
             Double totalMes = repository.somarValorPorCategoriaNoPeriodo(
                     categoria, mes.atDay(1), mes.atEndOfMonth(), idIgnorado);
             double total = totalMes + despesa.getValor();
-            if (total > categoria.getValorLimite()) {
+            if (total > categoria.getValorLimite()) { // 20
                 throw new RegraNegocioException(String.format(
                         "Limite de gasto mensal da categoria %s excedido (limite: %.2f, total no mês: %.2f)",
                         categoria.getNome(), categoria.getValorLimite(), total));
@@ -125,41 +125,41 @@ public class DespesaService {
     }
 
     // Composicao Despesa -> Parcela: gera (ou regera) as parcelas quando a despesa e parcelada.
-    private void sincronizarParcelas(Despesa despesa) {
+    private void sincronizarParcelas(Despesa despesa) { // 6
         List<Parcela> atuais = parcelaRepository.findByDespesaOrderByIdAsc(despesa);
         int quantidade = Boolean.TRUE.equals(despesa.getParcelada())
                 ? despesa.getQuantidadeParcelas()
-                : 0;
+                : 0; // 1
 
-        if (quantidade == atuais.size() && somaConfere(atuais, despesa.getValor())) {
+        if (quantidade == atuais.size() && somaConfere(atuais, despesa.getValor())) { // 2 e 3
             return;
         }
-        if (atuais.stream().anyMatch(p -> Boolean.TRUE.equals(p.getPago()))) {
+        if (atuais.stream().anyMatch(p -> Boolean.TRUE.equals(p.getPago()))) { // 4
             throw new RegraNegocioException(
                     "Despesa possui parcelas pagas: não é possível alterar o valor ou o parcelamento");
         }
         parcelaRepository.deleteAll(atuais);
-        if (quantidade > 0) {
+        if (quantidade > 0) { // 5
             parcelaRepository.saveAll(gerarParcelas(despesa, quantidade));
         }
     }
 
-    private boolean somaConfere(List<Parcela> parcelas, Float valor) {
-        if (parcelas.isEmpty()) {
+    private boolean somaConfere(List<Parcela> parcelas, Float valor) { // 2
+        if (parcelas.isEmpty()) { // 1
             return true;
         }
         double soma = parcelas.stream().mapToDouble(Parcela::getValorParcela).sum();
         return Math.abs(soma - valor) < 0.01;
     }
 
-    private List<Parcela> gerarParcelas(Despesa despesa, int quantidade) {
+    private List<Parcela> gerarParcelas(Despesa despesa, int quantidade) { // 3
         BigDecimal total = new BigDecimal(Float.toString(despesa.getValor()));
         BigDecimal valorBase = total.divide(BigDecimal.valueOf(quantidade), 2, RoundingMode.DOWN);
         BigDecimal ultima = total.subtract(valorBase.multiply(BigDecimal.valueOf(quantidade - 1)));
 
         List<Parcela> parcelas = new ArrayList<>();
-        for (int i = 1; i <= quantidade; i++) {
-            BigDecimal valor = (i == quantidade) ? ultima : valorBase;
+        for (int i = 1; i <= quantidade; i++) { // 1
+            BigDecimal valor = (i == quantidade) ? ultima : valorBase; // 2
             parcelas.add(new Parcela(null, valor.floatValue(), false, despesa));
         }
         return parcelas;

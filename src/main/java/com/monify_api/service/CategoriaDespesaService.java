@@ -34,7 +34,7 @@ public class CategoriaDespesaService {
     }
 
     @Transactional
-    public CategoriaDespesa salvar(CategoriaDespesa categoria) {
+    public CategoriaDespesa salvar(CategoriaDespesa categoria) { // 2
         validar(categoria);
         if (!Boolean.TRUE.equals(categoria.getLimiteGasto())) {
             categoria.setLimiteGasto(false);
@@ -44,20 +44,20 @@ public class CategoriaDespesaService {
     }
 
     @Transactional
-    public void excluir(CategoriaDespesa categoria) {
+    public void excluir(CategoriaDespesa categoria) { // 2
         Objects.requireNonNull(categoria.getId());
-        if (despesaRepository.existsByCategoriaDespesa(categoria)) {
+        if (despesaRepository.existsByCategoriaDespesa(categoria)) { // 1
             throw new RegraNegocioException("Categoria possui despesas vinculadas");
         }
         repository.delete(categoria);
     }
 
-    public void validar(CategoriaDespesa categoria) {
-        if (categoria.getNome() == null || categoria.getNome().trim().equals("")) {
+    public void validar(CategoriaDespesa categoria) { // 6
+        if (categoria.getNome() == null || categoria.getNome().trim().equals("")) { // 1 e 2
             throw new RegraNegocioException("Nome inválido");
         }
         if (Boolean.TRUE.equals(categoria.getLimiteGasto())
-                && (categoria.getValorLimite() == null || categoria.getValorLimite() <= 0)) {
+                && (categoria.getValorLimite() == null || categoria.getValorLimite() <= 0)) { // 3, 4 e 5
             throw new RegraNegocioException("Valor limite inválido");
         }
     }

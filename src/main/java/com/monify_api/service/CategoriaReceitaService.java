@@ -34,23 +34,23 @@ public class CategoriaReceitaService {
     }
 
     @Transactional
-    public CategoriaReceita salvar(CategoriaReceita categoria) {
+    public CategoriaReceita salvar(CategoriaReceita categoria) { // 1
         validar(categoria);
         categoria.setUsuario(usuarioLogadoService.getUsuarioLogado());
         return repository.save(categoria);
     }
 
     @Transactional
-    public void excluir(CategoriaReceita categoria) {
+    public void excluir(CategoriaReceita categoria) { // 2
         Objects.requireNonNull(categoria.getId());
-        if (receitaRepository.existsByCategoriaReceita(categoria)) {
+        if (receitaRepository.existsByCategoriaReceita(categoria)) { // 1
             throw new RegraNegocioException("Categoria possui receitas vinculadas");
         }
         repository.delete(categoria);
     }
 
-    public void validar(CategoriaReceita categoria) {
-        if (categoria.getNome() == null || categoria.getNome().trim().equals("")) {
+    public void validar(CategoriaReceita categoria) { // 3
+        if (categoria.getNome() == null || categoria.getNome().trim().equals("")) { // 1 e 2
             throw new RegraNegocioException("Nome inválido");
         }
     }

@@ -31,25 +31,25 @@ public class ParcelaService {
 
     // a despesa informada ja foi buscada restrita ao usuario logado (ParcelaController.converter)
     @Transactional
-    public Parcela salvar(Parcela parcela) {
+    public Parcela salvar(Parcela parcela) { // 2
         validar(parcela);
-        if (parcela.getPago() == null) {
+        if (parcela.getPago() == null) { // 1
             parcela.setPago(false);
         }
         return repository.save(parcela);
     }
 
     @Transactional
-    public void excluir(Parcela parcela) {
+    public void excluir(Parcela parcela) { // 1
         Objects.requireNonNull(parcela.getId());
         repository.delete(parcela);
     }
 
-    public void validar(Parcela parcela) {
-        if (parcela.getDespesa() == null || parcela.getDespesa().getId() == null || parcela.getDespesa().getId() == 0) {
+    public void validar(Parcela parcela) { // 6
+        if (parcela.getDespesa() == null || parcela.getDespesa().getId() == null || parcela.getDespesa().getId() == 0) { // 1, 2 e 3
             throw new RegraNegocioException("Despesa inválida");
         }
-        if (parcela.getValorParcela() == null || parcela.getValorParcela() <= 0) {
+        if (parcela.getValorParcela() == null || parcela.getValorParcela() <= 0) { // 4 e 5
             throw new RegraNegocioException("Valor da parcela inválido");
         }
     }
