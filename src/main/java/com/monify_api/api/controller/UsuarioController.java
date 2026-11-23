@@ -72,14 +72,25 @@ public class UsuarioController {
         try {
             Usuario usuario = Usuario.builder()
                     .login(credenciais.getLogin())
-                    .senha(credenciais.getSenha()).build();
-            UserDetails usuarioAutenticado = service.autenticar(usuario);
-            String token = jwtService.gerarToken(usuario);
-            boolean admin = usuarioAutenticado.getAuthorities().stream()
-                    .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-            return new TokenDTO(usuario.getLogin(), token, admin);
+                    .senha(credenciais.getSenha())
+                    .build();
+
+            Usuario usuarioAutenticado = service.autenticar(usuario);
+
+            String token = jwtService.gerarToken(usuarioAutenticado);
+
+            return new TokenDTO(
+                    usuarioAutenticado.getLogin(),
+                    usuarioAutenticado.getNome(),
+                    token,
+                    usuarioAutenticado.isAdmin()
+            );
+
         } catch (UsernameNotFoundException | SenhaInvalidaException e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Login ou senha inválidos"
+            );
         }
     }
 
