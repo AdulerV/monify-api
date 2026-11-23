@@ -64,15 +64,28 @@ public class UsuarioService implements UserDetailsService {
         return repository.save(usuario);
     }
 
-    public UserDetails autenticar(Usuario usuario) {
-        UserDetails user = loadUserByUsername(usuario.getLogin());
-        boolean senhasBatem = encoder.matches(usuario.getSenha(), user.getPassword());
+    public Usuario autenticar(Usuario usuario) {
 
-        if (senhasBatem) {
-            return user;
+        Usuario usuarioCadastrado = repository
+                .findByLogin(usuario.getLogin())
+                .orElseThrow(() ->
+                        new UsernameNotFoundException(
+                                "Usuário não encontrado"
+                        )
+                );
+
+        boolean senhasBatem = encoder.matches(
+                usuario.getSenha(),
+                usuarioCadastrado.getSenha()
+        );
+
+        if (!senhasBatem) {
+            throw new SenhaInvalidaException();
         }
-        throw new SenhaInvalidaException();
+
+        return usuarioCadastrado;
     }
+
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -105,16 +118,39 @@ public class UsuarioService implements UserDetailsService {
         repository.delete(usuario);
     }
 
+
     public void validar(Usuario usuario) {
-        if (usuario.getLogin() == null || usuario.getLogin().trim().equals("")) {
+
+        if (usuario.getNome() == null ||
+                usuario.getNome().trim().isEmpty()) {
+            throw new RegraNegocioException("Nome obrigatório");
+        }
+
+        if (usuario.getNome().trim().length() > 150) {
+            throw new RegraNegocioException(
+                    "Nome deve ter no máximo 150 caracteres"
+            );
+        }
+
+        usuario.setNome(usuario.getNome().trim());
+
+        if (usuario.getLogin() == null ||
+                usuario.getLogin().trim().isEmpty()) {
             throw new RegraNegocioException("Login inválido");
         }
-        if (usuario.getCpf() == null || usuario.getCpf().trim().equals("")) {
+
+        if (usuario.getCpf() == null ||
+                usuario.getCpf().trim().isEmpty()) {
             throw new RegraNegocioException("CPF inválido");
         }
-        Optional<Usuario> mesmoLogin = repository.findByLogin(usuario.getLogin());
-        if (mesmoLogin.isPresent() && !mesmoLogin.get().getId().equals(usuario.getId())) {
+
+        Optional<Usuario> mesmoLogin =
+                repository.findByLogin(usuario.getLogin());
+
+        if (mesmoLogin.isPresent() &&
+                !mesmoLogin.get().getId().equals(usuario.getId())) {
             throw new RegraNegocioException("Login já cadastrado");
         }
     }
+
 }

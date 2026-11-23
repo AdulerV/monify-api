@@ -12,6 +12,7 @@ import org.modelmapper.ModelMapper;
 public class UsuarioDTO {
 
     private Long id;
+    private String nome;
     private String login;
     private String senha;
     private String senhaRepeticao;
@@ -21,9 +22,10 @@ public class UsuarioDTO {
     public static UsuarioDTO create(Usuario usuario) {
         ModelMapper modelMapper = new ModelMapper();
         UsuarioDTO dto = modelMapper.map(usuario, UsuarioDTO.class);
-        // nunca devolver o hash da senha na resposta
+
         dto.senha = null;
         dto.senhaRepeticao = null;
+
         return dto;
     }
 }
