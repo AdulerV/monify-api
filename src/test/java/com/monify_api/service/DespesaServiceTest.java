@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -313,6 +314,45 @@ class DespesaServiceTest {
     }
 
     // RESTANTES DOS MÉTODOS DA CLASSE Despesa
+
+    // getDespesas() - 0 condições + 1 = 1 teste
+
+    @Test
+    void deveRetornarDespesas() {
+        Usuario usuario = new Usuario();
+        usuario.setId(1L);
+        Despesa despesa = criarDespesaValida();
+        despesa.setUsuario(usuario);
+        List<Despesa> esperadas = List.of(despesa);
+        when(usuarioLogadoService.getUsuarioLogado()).thenReturn(usuario);
+        when(despesaRepository.findByUsuario(usuario)).thenReturn(esperadas);
+
+        List<Despesa> resultado = despesaService.getDespesas();
+
+        assertEquals(esperadas, resultado);
+        verify(usuarioLogadoService).getUsuarioLogado();
+        verify(despesaRepository).findByUsuario(usuario);
+    }
+
+    // getDespesaById() - 0 condições + 1 = 1 teste
+
+    @Test
+    void deveRetornarDespesaPeloId() {
+        Usuario usuario = new Usuario();
+        usuario.setId(1L);
+        Despesa despesa = criarDespesaValida();
+        despesa.setId(1L);
+        despesa.setUsuario(usuario);
+        when(usuarioLogadoService.getUsuarioLogado()).thenReturn(usuario);
+        when(despesaRepository.findByIdAndUsuario(1L, usuario)).thenReturn(Optional.of(despesa));
+
+        Optional<Despesa> resultado = despesaService.getDespesaById(1L);
+
+        assertTrue(resultado.isPresent());
+        assertEquals(despesa, resultado.get());
+        verify(usuarioLogadoService).getUsuarioLogado();
+        verify(despesaRepository).findByIdAndUsuario(1L, usuario);
+    }
 
     // getDespesasByCategoria() - 0 condições + 1 = 1 teste
 
