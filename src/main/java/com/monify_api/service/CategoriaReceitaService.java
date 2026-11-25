@@ -16,10 +16,10 @@ public class CategoriaReceitaService {
 
     private CategoriaReceitaRepository repository;
     private ReceitaRepository receitaRepository;
-    private UsuarioLogadoService usuarioLogadoService;
+    private IUsuarioLogadoService usuarioLogadoService;
 
     public CategoriaReceitaService(CategoriaReceitaRepository repository, ReceitaRepository receitaRepository,
-                                   UsuarioLogadoService usuarioLogadoService) {
+                                   IUsuarioLogadoService usuarioLogadoService) {
         this.repository = repository;
         this.receitaRepository = receitaRepository;
         this.usuarioLogadoService = usuarioLogadoService;

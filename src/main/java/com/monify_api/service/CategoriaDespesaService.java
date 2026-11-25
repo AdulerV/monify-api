@@ -16,10 +16,10 @@ public class CategoriaDespesaService {
 
     private CategoriaDespesaRepository repository;
     private DespesaRepository despesaRepository;
-    private UsuarioLogadoService usuarioLogadoService;
+    private IUsuarioLogadoService usuarioLogadoService;
 
     public CategoriaDespesaService(CategoriaDespesaRepository repository, DespesaRepository despesaRepository,
-                                   UsuarioLogadoService usuarioLogadoService) {
+                                   IUsuarioLogadoService usuarioLogadoService) {
         this.repository = repository;
         this.despesaRepository = despesaRepository;
         this.usuarioLogadoService = usuarioLogadoService;
