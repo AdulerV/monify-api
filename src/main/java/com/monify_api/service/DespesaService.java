@@ -125,7 +125,7 @@ public class DespesaService {
     }
 
     // Composicao Despesa -> Parcela: gera (ou regera) as parcelas quando a despesa e parcelada.
-    private void sincronizarParcelas(Despesa despesa) { // 6
+    void sincronizarParcelas(Despesa despesa) { // 6
         List<Parcela> atuais = parcelaRepository.findByDespesaOrderByIdAsc(despesa);
         int quantidade = Boolean.TRUE.equals(despesa.getParcelada())
                 ? despesa.getQuantidadeParcelas()
@@ -144,15 +144,15 @@ public class DespesaService {
         }
     }
 
-    private boolean somaConfere(List<Parcela> parcelas, Float valor) { // 2
+    boolean somaConfere(List<Parcela> parcelas, Float valor) { // 3
         if (parcelas.isEmpty()) { // 1
             return true;
         }
         double soma = parcelas.stream().mapToDouble(Parcela::getValorParcela).sum();
-        return Math.abs(soma - valor) < 0.01;
+        return Math.abs(soma - valor) < 0.01; // 2
     }
 
-    private List<Parcela> gerarParcelas(Despesa despesa, int quantidade) { // 3
+    List<Parcela> gerarParcelas(Despesa despesa, int quantidade) { // 3
         BigDecimal total = new BigDecimal(Float.toString(despesa.getValor()));
         BigDecimal valorBase = total.divide(BigDecimal.valueOf(quantidade), 2, RoundingMode.DOWN);
         BigDecimal ultima = total.subtract(valorBase.multiply(BigDecimal.valueOf(quantidade - 1)));

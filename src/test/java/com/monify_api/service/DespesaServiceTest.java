@@ -4,14 +4,21 @@ import com.monify_api.exception.RegraNegocioException;
 import com.monify_api.model.entity.CategoriaDespesa;
 import com.monify_api.model.entity.Despesa;
 import com.monify_api.model.entity.FormaPagamento;
+import com.monify_api.model.entity.Parcela;
+import com.monify_api.model.entity.Usuario;
 import com.monify_api.model.repository.DespesaRepository;
+import com.monify_api.model.repository.ParcelaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -20,12 +27,16 @@ import static org.mockito.Mockito.when;
 
 class DespesaServiceTest {
     DespesaRepository despesaRepository;
+    ParcelaRepository parcelaRepository;
+    UsuarioLogadoService usuarioLogadoService;
     DespesaService despesaService;
 
     @BeforeEach
     public void setUp() {
         despesaRepository = mock(DespesaRepository.class);
-        despesaService = new DespesaService(despesaRepository, null, null);
+        parcelaRepository = mock(ParcelaRepository.class);
+        usuarioLogadoService = mock(UsuarioLogadoService.class);
+        despesaService = new DespesaService(despesaRepository, parcelaRepository, usuarioLogadoService);
     }
 
     // MÉTODO DE MAIOR COMPLEXIDADE - validar()
@@ -303,5 +314,330 @@ class DespesaServiceTest {
     }
 
     // RESTANTES DOS MÉTODOS DA CLASSE Despesa
+
+    // getDespesas() - 0 condições + 1 = 1 teste
+
+    @Test
+    void deveRetornarDespesas() {
+        Usuario usuario = new Usuario();
+        usuario.setId(1L);
+        Despesa despesa = criarDespesaValida();
+        despesa.setUsuario(usuario);
+        List<Despesa> esperadas = List.of(despesa);
+        when(usuarioLogadoService.getUsuarioLogado()).thenReturn(usuario);
+        when(despesaRepository.findByUsuario(usuario)).thenReturn(esperadas);
+
+        List<Despesa> resultado = despesaService.getDespesas();
+
+        assertEquals(esperadas, resultado);
+        verify(usuarioLogadoService).getUsuarioLogado();
+        verify(despesaRepository).findByUsuario(usuario);
+    }
+
+    // getDespesaById() - 0 condições + 1 = 1 teste
+
+    @Test
+    void deveRetornarDespesaPeloId() {
+        Usuario usuario = new Usuario();
+        usuario.setId(1L);
+        Despesa despesa = criarDespesaValida();
+        despesa.setId(1L);
+        despesa.setUsuario(usuario);
+        when(usuarioLogadoService.getUsuarioLogado()).thenReturn(usuario);
+        when(despesaRepository.findByIdAndUsuario(1L, usuario)).thenReturn(Optional.of(despesa));
+
+        Optional<Despesa> resultado = despesaService.getDespesaById(1L);
+
+        assertTrue(resultado.isPresent());
+        assertEquals(despesa, resultado.get());
+        verify(usuarioLogadoService).getUsuarioLogado();
+        verify(despesaRepository).findByIdAndUsuario(1L, usuario);
+    }
+
+    // getDespesasByCategoria() - 0 condições + 1 = 1 teste
+
+    @Test
+    void deveRetornarDespesasPorCategoria() {
+        CategoriaDespesa categoria = new CategoriaDespesa();
+        categoria.setId(1L);
+        Despesa despesa = criarDespesaValida();
+        despesa.setCategoriaDespesa(categoria);
+        List<Despesa> esperadas = List.of(despesa);
+        when(despesaRepository.findByCategoriaDespesa(categoria)).thenReturn(esperadas);
+
+        List<Despesa> resultado = despesaService.getDespesasByCategoria(categoria);
+
+        assertEquals(esperadas, resultado);
+        verify(despesaRepository).findByCategoriaDespesa(categoria);
+    }
+
+    // getParcelas() - 0 condições + 1 = 1 teste
+
+    @Test
+    void deveRetornarParcelasDaDespesa() {
+        Despesa despesa = criarDespesaValida();
+        despesa.setId(1L);
+        List<Parcela> esperadas = List.of(new Parcela(1L, 0.01f, false, despesa));
+        when(parcelaRepository.findByDespesaOrderByIdAsc(despesa)).thenReturn(esperadas);
+
+        List<Parcela> resultado = despesaService.getParcelas(despesa);
+
+        assertEquals(esperadas, resultado);
+        verify(parcelaRepository).findByDespesaOrderByIdAsc(despesa);
+    }
+
+    // salvar() - 1 condição + 1 = 2 testes
+
+    @Test
+    void deveSalvarDespesaDefinindoParceladaComoFalsoQuandoNaoForVerdadeiro() {
+        Usuario usuario = new Usuario();
+        usuario.setId(1L);
+        Despesa despesa = criarDespesaValida();
+        despesa.setParcelada(null);
+        when(usuarioLogadoService.getUsuarioLogado()).thenReturn(usuario);
+        when(despesaRepository.save(despesa)).thenReturn(despesa);
+        when(parcelaRepository.findByDespesaOrderByIdAsc(despesa)).thenReturn(Collections.emptyList());
+
+        Despesa salva = despesaService.salvar(despesa);
+
+        assertSame(despesa, salva);
+        assertEquals(false, salva.getParcelada());
+        assertEquals(usuario, salva.getUsuario());
+        verify(despesaRepository).save(despesa);
+        verify(parcelaRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    void deveSalvarDespesaParceladaMantendoParceladaComoVerdadeiro() {
+        Usuario usuario = new Usuario();
+        usuario.setId(1L);
+        Despesa despesa = criarDespesaValida();
+        despesa.setValor(0.02f);
+        despesa.setParcelada(true);
+        despesa.setQuantidadeParcelas(2);
+        when(usuarioLogadoService.getUsuarioLogado()).thenReturn(usuario);
+        when(despesaRepository.save(despesa)).thenReturn(despesa);
+        when(parcelaRepository.findByDespesaOrderByIdAsc(despesa)).thenReturn(Collections.emptyList());
+
+        Despesa salva = despesaService.salvar(despesa);
+
+        assertSame(despesa, salva);
+        assertEquals(true, salva.getParcelada());
+        assertEquals(usuario, salva.getUsuario());
+        verify(despesaRepository).save(despesa);
+        verify(parcelaRepository).saveAll(List.of(
+                new Parcela(null, 0.01f, false, despesa),
+                new Parcela(null, 0.01f, false, despesa)
+        ));
+    }
+
+    // excluir() - 0 condições + 1 = 1 teste
+
+    @Test
+    void deveExcluirDespesaESuasParcelas() {
+        Despesa despesa = criarDespesaValida();
+        despesa.setId(1L);
+        List<Parcela> parcelas = List.of(new Parcela(1L, 0.01f, false, despesa));
+        when(parcelaRepository.findByDespesaOrderByIdAsc(despesa)).thenReturn(parcelas);
+
+        despesaService.excluir(despesa);
+
+        verify(parcelaRepository).findByDespesaOrderByIdAsc(despesa);
+        verify(parcelaRepository).deleteAll(parcelas);
+        verify(despesaRepository).delete(despesa);
+    }
+
+    // sincronizarParcelas() - 5 condições + 1 = 6 testes
+
+    @Test
+    void deveManterSemAlteracaoQuandoDespesaNaoParceladaESemParcelasAtuais() {
+        Despesa despesa = criarDespesaValida();
+        despesa.setParcelada(false);
+        despesa.setValor(0.01f);
+        when(parcelaRepository.findByDespesaOrderByIdAsc(despesa)).thenReturn(Collections.emptyList());
+
+        despesaService.sincronizarParcelas(despesa);
+
+        verify(parcelaRepository, never()).deleteAll(anyList());
+        verify(parcelaRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    void deveManterParcelasQuandoQuantidadeESomaConferem() {
+        Despesa despesa = criarDespesaValida();
+        despesa.setParcelada(true);
+        despesa.setQuantidadeParcelas(2);
+        despesa.setValor(10.009f);
+        List<Parcela> atuais = List.of(
+                new Parcela(1L, 5.0f, false, despesa),
+                new Parcela(2L, 5.0f, false, despesa)
+        );
+        when(parcelaRepository.findByDespesaOrderByIdAsc(despesa)).thenReturn(atuais);
+
+        despesaService.sincronizarParcelas(despesa);
+
+        verify(parcelaRepository, never()).deleteAll(anyList());
+        verify(parcelaRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    public void deveImpedirSincronizacaoQuandoSomaNaoConfereEHaParcelaPaga() {
+        try {
+            Despesa despesa = criarDespesaValida();
+            despesa.setParcelada(true);
+            despesa.setQuantidadeParcelas(2);
+            despesa.setValor(10.01f);
+            List<Parcela> atuais = List.of(
+                    new Parcela(1L, 5.0f, true, despesa),
+                    new Parcela(2L, 5.0f, false, despesa)
+            );
+            when(parcelaRepository.findByDespesaOrderByIdAsc(despesa)).thenReturn(atuais);
+
+            despesaService.sincronizarParcelas(despesa);
+            fail();
+        } catch (RegraNegocioException e) {
+            assertEquals("Despesa possui parcelas pagas: não é possível alterar o valor ou o parcelamento",
+                    e.getMessage());
+            verify(parcelaRepository, never()).deleteAll(anyList());
+            verify(parcelaRepository, never()).saveAll(anyList());
+        }
+    }
+
+    @Test
+    void deveRegerarParcelasQuandoSomaNaoConfereESemParcelasPagas() {
+        Despesa despesa = criarDespesaValida();
+        despesa.setParcelada(true);
+        despesa.setQuantidadeParcelas(2);
+        despesa.setValor(10.01f);
+        List<Parcela> atuais = List.of(
+                new Parcela(1L, 5.0f, false, despesa),
+                new Parcela(2L, 5.0f, false, despesa)
+        );
+        when(parcelaRepository.findByDespesaOrderByIdAsc(despesa)).thenReturn(atuais);
+
+        despesaService.sincronizarParcelas(despesa);
+
+        verify(parcelaRepository).deleteAll(atuais);
+        verify(parcelaRepository).saveAll(List.of(
+                new Parcela(null, 5.00f, false, despesa),
+                new Parcela(null, 5.01f, false, despesa)
+        ));
+    }
+
+    @Test
+    void deveGerarParcelasQuandoQuantidadeDifereDasAtuaisESemParcelasPagas() {
+        Despesa despesa = criarDespesaValida();
+        despesa.setParcelada(true);
+        despesa.setQuantidadeParcelas(2);
+        despesa.setValor(0.02f);
+        when(parcelaRepository.findByDespesaOrderByIdAsc(despesa)).thenReturn(Collections.emptyList());
+
+        despesaService.sincronizarParcelas(despesa);
+
+        verify(parcelaRepository).deleteAll(Collections.emptyList());
+        verify(parcelaRepository).saveAll(List.of(
+                new Parcela(null, 0.01f, false, despesa),
+                new Parcela(null, 0.01f, false, despesa)
+        ));
+    }
+
+    @Test
+    void deveExcluirParcelasSemGerarNovasQuandoDespesaDeixaDeSerParcelada() {
+        Despesa despesa = criarDespesaValida();
+        despesa.setParcelada(false);
+        despesa.setValor(10.0f);
+        List<Parcela> atuais = List.of(
+                new Parcela(1L, 5.0f, false, despesa),
+                new Parcela(2L, 5.0f, false, despesa)
+        );
+        when(parcelaRepository.findByDespesaOrderByIdAsc(despesa)).thenReturn(atuais);
+
+        despesaService.sincronizarParcelas(despesa);
+
+        verify(parcelaRepository).deleteAll(atuais);
+        verify(parcelaRepository, never()).saveAll(anyList());
+    }
+
+    // somaConfere() - 2 condições + 1 = 3 testes
+
+    @Test
+    void deveConfirmarSomaQuandoListaDeParcelasVazia() {
+        boolean resultado = despesaService.somaConfere(Collections.emptyList(), 0.01f);
+
+        assertTrue(resultado);
+    }
+
+    @Test
+    void deveConfirmarSomaQuandoDiferencaMenorQueUmCentavo() {
+        List<Parcela> parcelas = List.of(
+                new Parcela(1L, 5.0f, false, null),
+                new Parcela(2L, 5.0f, false, null)
+        );
+
+        boolean resultado = despesaService.somaConfere(parcelas, 10.009f);
+
+        assertTrue(resultado);
+    }
+
+    @Test
+    void deveRecusarSomaQuandoDiferencaIgualOuMaiorQueUmCentavo() {
+        List<Parcela> parcelas = List.of(
+                new Parcela(1L, 5.0f, false, null),
+                new Parcela(2L, 5.0f, false, null)
+        );
+
+        boolean resultado = despesaService.somaConfere(parcelas, 10.01f);
+
+        assertFalse(resultado);
+    }
+
+    // gerarParcelas() - 2 condições + 1 = 3 testes
+
+    @Test
+    void deveGerarUmaParcelaComValorTotalQuandoQuantidadeIgualAUm() {
+        Despesa despesa = criarDespesaValida();
+        despesa.setValor(0.01f);
+
+        List<Parcela> parcelas = despesaService.gerarParcelas(despesa, 1);
+
+        assertEquals(1, parcelas.size());
+        assertNull(parcelas.get(0).getId());
+        assertEquals(0.01f, parcelas.get(0).getValorParcela());
+        assertEquals(false, parcelas.get(0).getPago());
+        assertSame(despesa, parcelas.get(0).getDespesa());
+    }
+
+    @Test
+    void deveGerarParcelasNaQuantidadeMinimaComRestoNaUltimaParcela() {
+        Despesa despesa = criarDespesaValida();
+        despesa.setValor(0.03f);
+
+        List<Parcela> parcelas = despesaService.gerarParcelas(despesa, 2);
+
+        assertEquals(2, parcelas.size());
+        assertEquals(0.01f, parcelas.get(0).getValorParcela());
+        assertEquals(0.02f, parcelas.get(1).getValorParcela());
+        assertEquals(false, parcelas.get(0).getPago());
+        assertEquals(false, parcelas.get(1).getPago());
+        assertSame(despesa, parcelas.get(0).getDespesa());
+        assertSame(despesa, parcelas.get(1).getDespesa());
+    }
+
+    @Test
+    void deveGerarParcelasNaQuantidadeMaximaComDivisaoExata() {
+        Despesa despesa = criarDespesaValida();
+        despesa.setValor(1.20f);
+
+        List<Parcela> parcelas = despesaService.gerarParcelas(despesa, 120);
+
+        assertEquals(120, parcelas.size());
+        assertEquals(0.01f, parcelas.get(0).getValorParcela());
+        assertEquals(0.01f, parcelas.get(119).getValorParcela());
+        assertTrue(parcelas.stream().allMatch(p ->
+                p.getId() == null
+                        && Float.valueOf(0.01f).equals(p.getValorParcela())
+                        && Boolean.FALSE.equals(p.getPago())
+                        && p.getDespesa() == despesa));
+    }
 
 }
