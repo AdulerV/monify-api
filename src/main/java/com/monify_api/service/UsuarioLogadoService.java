@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 // Todos os services de dominio dependem desta classe para isolar os dados por usuario
 // (e ela e o ponto natural para objetos mock nos testes unitarios).
 @Service
-public class UsuarioLogadoService {
+public class UsuarioLogadoService implements IUsuarioLogadoService {
 
     private final UsuarioRepository repository;
 
@@ -20,6 +20,7 @@ public class UsuarioLogadoService {
         this.repository = repository;
     }
 
+    @Override
     public Usuario getUsuarioLogado() {
         Authentication autenticacao = SecurityContextHolder.getContext().getAuthentication();
         if (autenticacao == null || autenticacao instanceof AnonymousAuthenticationToken) {
